@@ -893,7 +893,11 @@ types:
             types:
               flags_bitset:
                 seq:
-                  - type: b6
+                  - type: b5
+                  - id: has_properties
+                    type: b1
+                    doc: |
+                      Userdata has properties
                   - id: has_color
                     type: b1
                     doc: |
@@ -1067,12 +1071,8 @@ types:
                       2 - Extension name for properties
                       3 - Extension name for tile management (can exist one per sprite)
                   - size: 7
-                  - id: name_size
-                    type: u2
                   - id: name
-                    type: str
-                    size: name_size
-                    encoding: utf-8
+                    type: string
                     doc: |
                       External file name or extension ID
           tileset_chunk:
