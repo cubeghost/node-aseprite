@@ -62,7 +62,7 @@ types:
           Palette entry (index) which represents the transparent
           color in all non-background layers (only for
           pixel_format=indexed (8bpp) sprites).
-      - type: b24
+      - size: 3
       - id: num_colors
         type: u2
         doc: |
@@ -104,11 +104,21 @@ types:
     types:
       flags_bitset:
         seq:
-          - type: b7
+          - type: b6
           - id: valid_opacity
             type: b1
-            doc: Layer opacity has a valid value
-          - type: b24
+            doc: |
+              Layer opacity has a valid value
+          - id: valid_groups
+            type: b1
+            doc: |
+              Layer blend mode/opacity is valid for groups
+              (composite groups separately first when rendering)
+          - id: layers_uuid
+            type: b1
+            doc: |
+              Layers have an UUID
+          - type: b23
   frame:
     seq:
       - id: header
@@ -179,6 +189,7 @@ types:
                 'chunk_type_enum::palette': palette_chunk
                 'chunk_type_enum::userdata': userdata_chunk
                 'chunk_type_enum::slice': slice_chunk
+                'chunk_type_enum::tileset': tileset_chunk
                 _: dummy_chunk
         enums:
           chunk_type_enum:
@@ -194,6 +205,7 @@ types:
             0x2019: palette
             0x2020: userdata
             0x2022: slice
+            0x2023: tileset
         types:
           dummy_chunk:
             seq:
@@ -411,10 +423,21 @@ types:
                 encoding: utf-8
                 doc: |
                   Layer name
+              - id: tileset_index
+                type: u4
+                if: type == type_enum::tilemap
+                doc: |
+                  Tileset index
+              - id: uuid
+                size: 16
+                if: _parent._parent._parent.header.flags.layers_uuid == true
+                doc: |
+                  Layer's universally unique identifier
             enums:
               type_enum:
                 0: image
                 1: group
+                2: tilemap
               blend_mode_enum:
                 0: normal
                 1: multiply
@@ -503,7 +526,13 @@ types:
                 enum: cel_type_enum
                 doc: |
                   The format of the cel's contents
-              - size: 7
+              - id: z_index
+                type: s2
+                doc: |
+                  0 = default layer ordering
+                  +N = show this cel N layers later
+                  -N = show this cel N layers back
+              - size: 5
               - id: raw_width
                 type: u2
                 if: type == cel_type_enum::raw
@@ -564,11 +593,55 @@ types:
 
                   Pixels are read row by row from top to bottom,
                   for each scanline read pixels from left to right.
+              - id: tiles_width
+                type: u2
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Width in number of tiles
+              - id: tiles_height
+                type: u2
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Height in number of tiles
+              - id: bits_per_tile
+                type: u2
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Bits per tile (at the moment it's always 32-bit per tile)
+              - id: tile_id_bitmask
+                type: u4
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Bitmask for tile ID (e.g. 0x1fffffff for 32-bit tiles)
+              - id: x_flip_bitmask
+                type: u4
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Bitmask for X flip
+              - id: y_flip_bitmask
+                type: u4
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Bitmask for Y flip
+              - id: d_flip_bitmask
+                type: u4
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Bitmask for diagonal flip (swap X/Y axis)
+              - size: 10
+                if: type == cel_type_enum::compressed_tilemap
+              - id: tiles_compressed
+                size: _parent.size - 54
+                if: type == cel_type_enum::compressed_tilemap
+                doc: |
+                  Row by row, from top to bottom tile by tile
+                  compressed with ZLIB method (see NOTE.3)
             enums:
               cel_type_enum:
                 0: raw
                 1: linked
                 2: compressed
+                3: compressed_tilemap
           cel_extra_chunk:
             seq:
               - id: flags
@@ -805,15 +878,19 @@ types:
             types:
               flags_bitset:
                 seq:
-                  - type: b6
-                  - id: has_color
-                    type: b1
-                    doc: |
-                      Userdata has color information
+                  - type: b5
                   - id: has_text
                     type: b1
                     doc: |
                       Userdata has textual information
+                  - id: has_color
+                    type: b1
+                    doc: |
+                      Userdata has color information
+                  - id: has_properties
+                    type: b1
+                    doc: |
+                      Userdata has properties
                   - type: b24
           mask_chunk:
             seq:
@@ -848,3 +925,94 @@ types:
                 doc: |
                   Each byte contains 8 pixels (the leftmost pixels
                   are packed into the high order bits)
+          tileset_chunk:
+            seq:
+              - id: tileset_id
+                type: u4
+                doc: |
+                  Tileset ID
+              - id: flags
+                type: flags_bitset
+                doc: |
+                  Flags for tileset
+              - id: num_tiles
+                type: u4
+                doc: |
+                  Number of tiles
+              - id: tile_width
+                type: u2
+                doc: |
+                  Tile width
+              - id: tile_height
+                type: u2
+                doc: |
+                  Tile height
+              - id: base_index
+                type: s2
+                doc: |
+                  UI only
+              - size: 14
+              - id: name_size
+                type: u2
+              - id: name
+                type: str
+                size: name_size
+                encoding: utf-8
+                doc: |
+                  Tileset name
+              - id: external_file_id
+                type: u4
+                if: flags.include_external == true
+                doc: |
+                  ID of the external file. This ID is one entry
+                  of the the External Files Chunk.
+              - id: external_tileset_id
+                type: u4
+                if: flags.include_external == true
+                doc: |
+                  Tileset ID in the external file
+              - id: data_length
+                type: u4
+                if: flags.include_internal == true
+                doc: |
+                  Data length of the compressed Tileset image
+              - id: pixels_compressed
+                size: data_length
+                if: flags.include_internal == true
+                doc: |
+                  Compressed Tileset image (see NOTE.3):
+                  (Tile Width) x (Tile Height x Number of Tiles)
+            types:
+              flags_bitset:
+                seq:
+                  - type: b4
+                  - id: include_external
+                    type: b1
+                    doc: |
+                      Include link to external file
+                  - id: include_internal
+                    type: b1
+                    doc: |
+                      Include tiles inside this file
+                  - id: empty_zero
+                    type: b1
+                    doc: |
+                      Tilemaps using this tileset use tile ID=0 as empty tile
+                      (this is the new format). In rare cases this bit is off,
+                      and the empty tile will be equal to 0xffffffff (used in
+                      internal versions of Aseprite)
+                  - id: x_auto
+                    type: b1
+                    doc: |
+                      Aseprite will try to match modified tiles with their X
+                      flipped version automatically in Auto mode when using
+                      this tileset.
+                  - id: y_auto
+                    type: b1
+                    doc: |
+                      Same as x_auto but for Y flips
+                  - id: d_auto
+                    type: b1
+                    doc: |
+                      Same as x_auto but for diagonal flips
+                  - type: b22

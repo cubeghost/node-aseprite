@@ -42,7 +42,13 @@ function inflate(ase) {
 				const cel = chunk.data;
 				if (cel.type === CelTypeEnum.COMPRESSED) {
 					cel.pixels = zlib.inflateSync(cel.pixelsCompressed);
+				} else if (cel.type === CelTypeEnum.COMPRESSED_TILEMAP) {
+					cel.tiles = zlib.inflateSync(cel.tilesCompressed);
 				}
+			} else if (chunk.type === ChunkTypeEnum.TILESET) {
+				chunk.data.pixels = zlib.inflateSync(
+					chunk.data.pixelsCompressed,
+				);
 			}
 		}
 	}
