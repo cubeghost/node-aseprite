@@ -12,6 +12,28 @@ seq:
     repeat: expr
     repeat-expr: header.num_frames
 types:
+  string:
+    seq:
+      - id: length
+        type: u2
+      - id: value
+        type: str
+        size: length
+        encoding: utf-8
+  fixed:
+    seq:
+      - id: int
+        type: u2
+        doc: |
+          The integer part of the fixed float
+      - id: dec
+        type: u2
+        doc: |
+          The decimal part of the fixed float
+  uuid:
+    seq:
+      - id: value
+        size: 16
   header:
     seq:
       - id: file_size
@@ -256,13 +278,8 @@ types:
                     type: u1
                     doc: |
                       Alpha channel (0-255)
-                  - id: name_length
-                    type: u2
-                    if: flags.has_name == true
                   - id: name
-                    type: str
-                    size: name_length
-                    encoding: utf-8
+                    type: string
                     if: flags.has_name == true
                     doc: |
                       The name of the palette entry
@@ -283,7 +300,7 @@ types:
               - id: flags
                 type: flags
               - id: fixed_gamma
-                type: fixed_float
+                type: fixed
                 doc: |
                   Fixed gamma (1.0 = linear)
                   Note: The gamma in sRGB is 2.2 in overall but it doesn't use
@@ -315,16 +332,6 @@ types:
                     doc: |
                       Use special fixed gamma
                   - type: b8
-              fixed_float:
-                seq:
-                  - id: int
-                    type: u2
-                    doc: |
-                      The integer part of the fixed float
-                  - id: dec
-                    type: u2
-                    doc: |
-                      The decimal part of the fixed float
           palette_old_chunk:
             seq:
               - id: num_packets
@@ -417,12 +424,8 @@ types:
                   Layer opacity (0-255)
                   NOTE: Only valid if flags.visible==true.
               - size: 3
-              - id: name_size
-                type: u2
               - id: name
-                type: str
-                size: name_size
-                encoding: utf-8
+                type: string
                 doc: |
                   Layer name
               - id: tileset_index
@@ -675,16 +678,6 @@ types:
                     type: b1
                     doc: |
                       Precise bounds are set
-              fixed:
-                seq:
-                  - id: int
-                    type: u2
-                    doc: |
-                      The integer part of the fixed float
-                  - id: dec
-                    type: u2
-                    doc: |
-                      The decimal part of the fixed float
           slice_chunk:
             seq:
               - id: num_keys
@@ -696,12 +689,8 @@ types:
                 doc: |
                   Slice flags
               - type: u4
-              - id: name_size
-                type: u2
               - id: name
-                type: str
-                size: name_size
-                encoding: utf-8
+                type: string
                 doc: |
                   The slice's name
               - id: keys
@@ -813,12 +802,8 @@ types:
                     doc: |
                       The tag's color
                   - type: u1
-                  - id: name_size
-                    type: u2
                   - id: name
-                    type: str
-                    size: name_size
-                    encoding: utf-8
+                    type: string
                     doc: |
                       The tag's name
                 enums:
@@ -847,13 +832,8 @@ types:
                 type: flags_bitset
                 doc: |
                   Flags for the userdata
-              - id: text_size
-                type: u2
-                if: flags.has_text == true
               - id: text
-                type: str
-                size: text_size
-                encoding: utf-8
+                type: string
                 if: flags.has_text == true
                 doc: |
                   Userdata text
@@ -877,6 +857,39 @@ types:
                 if: flags.has_color == true
                 doc: |
                   The alpha channel (0-255)
+              - id: properties_maps_size
+                type: u4
+                if: flags.has_properties == true
+              - id: num_properties_maps
+                type: u4
+                if: flags.has_properties == true
+              - id: properties_maps
+                type: properties_map
+                if: flags.has_properties == true
+                repeat: expr
+                repeat-expr: num_properties_maps
+            enums:
+              type:
+                0x0000: mixed
+                0x0001: bool
+                0x0002: int8
+                0x0003: uint8
+                0x0004: int16
+                0x0005: uint16
+                0x0006: int32
+                0x0007: uint32
+                0x0008: int64
+                0x0009: uint64
+                0x000A: fixed
+                0x000B: float
+                0x000C: double
+                0x000D: string
+                0x000E: point
+                0x000F: size
+                0x0010: rect
+                0x0011: vector
+                0x0012: properties_map
+                0x0013: uuid
             types:
               flags_bitset:
                 seq:
@@ -890,6 +903,111 @@ types:
                     doc: |
                       Userdata has textual information
                   - type: b24
+              properties_map:
+                seq:
+                  - id: key
+                    type: u4
+                    doc: |
+                      == 0 means user properties
+                      != 0 means an extension Entry ID (see External Files Chunk))
+                  - id: num_properties
+                    type: u4
+                  - id: properties
+                    type: property
+                    repeat: expr
+                    repeat-expr: num_properties
+              property:
+                seq:
+                  - id: name
+                    type: string
+                    doc: | 
+                      Property name
+                  - id: type
+                    type: u2
+                    enum: type
+                  - id: value
+                    type: value(type)
+              value:
+                params:
+                  - id: type
+                    type: u2
+                    enum: type
+                seq:
+                  - id: value
+                    type:
+                      switch-on: type
+                      cases:
+                        'type::bool': u1
+                        'type::int8': u1
+                        'type::uint8': u1
+                        'type::int16': s2
+                        'type::uint16': u2
+                        'type::int32': s4
+                        'type::uint32': u4
+                        'type::int64': s8
+                        'type::uint64': u8
+                        'type::fixed': fixed
+                        'type::float': f4
+                        'type::double': f8
+                        'type::string': string
+                        'type::point': point
+                        'type::size': size
+                        'type::rect': rect
+                        'type::vector': vector
+                        'type::properties_map': nested_properties_map
+                        'type::uuid': uuid
+              point:
+                seq:
+                  - id: x
+                    type: s4
+                  - id: y
+                    type: s4
+              size:
+                seq:
+                  - id: width
+                    type: s4
+                  - id: height
+                    type: s4
+              rect:
+                seq:
+                  - id: point
+                    type: point
+                  - id: size
+                    type: size
+              vector: 
+                seq:
+                  - id: num_elements
+                    type: u4
+                  - id: elements_type
+                    type: u2
+                    enum: type
+                  - id: elements
+                    type: 
+                      switch-on: elements_type
+                      cases:
+                        'type::mixed': typed_vector_element
+                        _: vector_element
+                    repeat: expr
+                    repeat-expr: num_elements
+              typed_vector_element:
+                seq:
+                  - id: type
+                    type: u2
+                    enum: type
+                  - id: value
+                    type: value(type)
+              vector_element:
+                seq:
+                  - id: value
+                    type: value(_parent.elements_type)
+              nested_properties_map:
+                seq:
+                  - id: num_properties
+                    type: u4
+                  - id: properties
+                    type: property
+                    repeat: expr
+                    repeat-expr: num_properties
           mask_chunk:
             seq:
               - id: x
