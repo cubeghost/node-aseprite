@@ -46,9 +46,7 @@ function inflate(ase) {
 					cel.tiles = zlib.inflateSync(cel.tilesCompressed);
 				}
 			} else if (chunk.type === ChunkTypeEnum.TILESET) {
-				chunk.data.pixels = zlib.inflateSync(
-					chunk.data.pixelsCompressed,
-				);
+				chunk.data.pixels = zlib.inflateSync(chunk.data.pixelsCompressed);
 			}
 		}
 	}
