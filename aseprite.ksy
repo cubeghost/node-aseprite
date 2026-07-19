@@ -931,6 +931,8 @@ types:
             seq:
               - id: num_entries
                 type: u4
+                doc: |
+                  Number of entries
               - size: 8
               - id: entries
                 type: entry
@@ -941,6 +943,8 @@ types:
                 seq:
                   - id: id
                     type: u4
+                    doc: |
+                      Entry ID (this ID is referenced by tilesets, palettes, or extended properties)
                   - id: type
                     type: u1
                     doc: |
@@ -949,12 +953,14 @@ types:
                       2 - Extension name for properties
                       3 - Extension name for tile management (can exist one per sprite)
                   - size: 7
-                  - id: external_id_size
+                  - id: name_size
                     type: u2
-                  - id: external_id
+                  - id: name
                     type: str
-                    size: external_id_size
+                    size: name_size
                     encoding: utf-8
+                    doc: |
+                      External file name or extension ID
           tileset_chunk:
             seq:
               - id: tileset_id
