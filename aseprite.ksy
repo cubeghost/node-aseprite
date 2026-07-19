@@ -1015,7 +1015,7 @@ types:
             types:
               flags_bitset:
                 seq:
-                  - type: b4
+                  - type: b2
                   - id: d_auto
                     type: b1
                     doc: |
@@ -1045,4 +1045,4 @@ types:
                     type: b1
                     doc: |
                       Include link to external file
-                  - type: b22
+                  - type: b24
