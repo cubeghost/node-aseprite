@@ -880,11 +880,7 @@ types:
             types:
               flags_bitset:
                 seq:
-                  - type: b5
-                  - id: has_properties
-                    type: b1
-                    doc: |
-                      Userdata has properties
+                  - type: b6
                   - id: has_color
                     type: b1
                     doc: |
