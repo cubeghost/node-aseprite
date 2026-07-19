@@ -104,21 +104,21 @@ types:
     types:
       flags_bitset:
         seq:
-          - type: b6
-          - id: valid_opacity
+          - type: b5
+          - id: layers_uuid
             type: b1
             doc: |
-              Layer opacity has a valid value
+              Layers have an UUID
           - id: valid_groups
             type: b1
             doc: |
               Layer blend mode/opacity is valid for groups
               (composite groups separately first when rendering)
-          - id: layers_uuid
+          - id: valid_opacity
             type: b1
             doc: |
-              Layers have an UUID
-          - type: b23
+              Layer opacity has a valid value
+          - type: b24
   frame:
     seq:
       - id: header
@@ -879,18 +879,18 @@ types:
               flags_bitset:
                 seq:
                   - type: b5
-                  - id: has_text
-                    type: b1
-                    doc: |
-                      Userdata has textual information
-                  - id: has_color
-                    type: b1
-                    doc: |
-                      Userdata has color information
                   - id: has_properties
                     type: b1
                     doc: |
                       Userdata has properties
+                  - id: has_color
+                    type: b1
+                    doc: |
+                      Userdata has color information
+                  - id: has_text
+                    type: b1
+                    doc: |
+                      Userdata has textual information
                   - type: b24
           mask_chunk:
             seq:
@@ -986,14 +986,20 @@ types:
               flags_bitset:
                 seq:
                   - type: b4
-                  - id: include_external
+                  - id: d_auto
                     type: b1
                     doc: |
-                      Include link to external file
-                  - id: include_internal
+                      Same as x_auto but for diagonal flips
+                  - id: y_auto
                     type: b1
                     doc: |
-                      Include tiles inside this file
+                      Same as x_auto but for Y flips
+                  - id: x_auto
+                    type: b1
+                    doc: |
+                      Aseprite will try to match modified tiles with their X
+                      flipped version automatically in Auto mode when using
+                      this tileset.
                   - id: empty_zero
                     type: b1
                     doc: |
@@ -1001,18 +1007,12 @@ types:
                       (this is the new format). In rare cases this bit is off,
                       and the empty tile will be equal to 0xffffffff (used in
                       internal versions of Aseprite)
-                  - id: x_auto
+                  - id: include_internal
                     type: b1
                     doc: |
-                      Aseprite will try to match modified tiles with their X
-                      flipped version automatically in Auto mode when using
-                      this tileset.
-                  - id: y_auto
+                      Include tiles inside this file
+                  - id: include_external
                     type: b1
                     doc: |
-                      Same as x_auto but for Y flips
-                  - id: d_auto
-                    type: b1
-                    doc: |
-                      Same as x_auto but for diagonal flips
+                      Include link to external file
                   - type: b22
