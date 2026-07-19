@@ -184,6 +184,7 @@ types:
                 'chunk_type_enum::cel': cel_chunk
                 'chunk_type_enum::cel_extra': cel_extra_chunk
                 'chunk_type_enum::color_profile': color_profile_chunk
+                'chunk_type_enum::external_files': external_files_chunk
                 'chunk_type_enum::mask': mask_chunk
                 'chunk_type_enum::tags': tags_chunk
                 'chunk_type_enum::palette': palette_chunk
@@ -199,6 +200,7 @@ types:
             0x2005: cel
             0x2006: cel_extra
             0x2007: color_profile
+            0x2008: external_files
             0x2016: mask
             0x2017: path
             0x2018: tags
@@ -430,7 +432,7 @@ types:
                   Tileset index
               - id: uuid
                 size: 16
-                if: _parent._parent._parent.header.flags.layers_uuid == true
+                if: _root.header.flags.layers_uuid == true
                 doc: |
                   Layer's universally unique identifier
             enums:
@@ -925,6 +927,34 @@ types:
                 doc: |
                   Each byte contains 8 pixels (the leftmost pixels
                   are packed into the high order bits)
+          external_files_chunk:
+            seq:
+              - id: num_entries
+                type: u4
+              - size: 8
+              - id: entries
+                type: entry
+                repeat: expr
+                repeat-expr: num_entries
+            types:
+              entry:
+                seq:
+                  - id: id
+                    type: u4
+                  - id: type
+                    type: u1
+                    doc: |
+                      0 - External palette
+                      1 - External tileset
+                      2 - Extension name for properties
+                      3 - Extension name for tile management (can exist one per sprite)
+                  - size: 7
+                  - id: external_id_size
+                    type: u2
+                  - id: external_id
+                    type: str
+                    size: external_id_size
+                    encoding: utf-8
           tileset_chunk:
             seq:
               - id: tileset_id
