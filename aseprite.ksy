@@ -637,7 +637,7 @@ types:
                 if: type == cel_type_enum::compressed_tilemap
                 doc: |
                   Row by row, from top to bottom tile by tile
-                  compressed with ZLIB method (see NOTE.3)
+                  compressed with ZLIB method
             enums:
               cel_type_enum:
                 0: raw
@@ -1012,7 +1012,7 @@ types:
                 size: data_length
                 if: flags.include_internal == true
                 doc: |
-                  Compressed Tileset image (see NOTE.3):
+                  Compressed Tileset image:
                   (Tile Width) x (Tile Height x Number of Tiles)
             types:
               flags_bitset:
